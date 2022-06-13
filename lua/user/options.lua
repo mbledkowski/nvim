@@ -37,7 +37,7 @@ local options = {
   wrap = false,                            -- display lines as one long line
   scrolloff = 8,                           -- is one of my fav
   sidescrolloff = 8,
-  guifont = "JetBrains\\ Mono:h8",               -- the font used in graphical neovim applications
+  guifont = "JetBrains\ Mono:h8",               -- the font used in graphical neovim applications
 
 }
 vim.g.loaded_netrw = 1
