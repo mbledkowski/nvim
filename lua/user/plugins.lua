@@ -95,7 +95,7 @@ return packer.startup(function(use)
 
   use {
     "ghillb/cybu.nvim",
-    branch = "v1.x", -- won't receive breaking changes
+    -- branch = "v1.x", -- won't receive breaking changes
     -- branch = "main", -- timely updates
     requires = { "kyazdani42/nvim-web-devicons" }, --optional
   }
@@ -155,7 +155,9 @@ return packer.startup(function(use)
   use "jose-elias-alvarez/null-ls.nvim" -- for formatters and linters
   use "filipdutescu/renamer.nvim"
   use "simrat39/symbols-outline.nvim"
-  use "ray-x/lsp_signature.nvim"
+  use {"ray-x/lsp_signature.nvim",
+    commit = "4852d99f9511d090745d3cc1f09a75772b9e07e9"
+  }
   use "b0o/SchemaStore.nvim"
   use {
     "folke/trouble.nvim",
