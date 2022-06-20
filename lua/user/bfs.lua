@@ -4,6 +4,11 @@ M.bopen = {}
 
 local ui = vim.api.nvim_list_uis()[1]
 
+M.current_buf = ""
+
+M.terminal_count = 0
+M.terminal_map = {}
+
 M.win_conf = {
   width = 40,
   height = 10,
@@ -23,7 +28,7 @@ M.openOptions = {
   hsplit = "sb %s",
 }
 
-M.get_bufs = function()
+local get_bufs = function()
   local bufs = {}
   local cwd_path = vim.fn.getcwd() .. "/"
   for _, id in ipairs(vim.api.nvim_list_bufs()) do
@@ -49,13 +54,17 @@ end
 -- Open buffer from line
 function M.selBufNum(win, opt, count)
   local buf = nil
-  local filename = ""
+  local filename = nil
 
   if count ~= 0 then
     vim.notify "count wasn't 0, idk why"
   else
     buf = vim.api.nvim_get_current_line()
     filename = buf:split(" ", true)[3]
+
+    if filename:split("_", true)[1] == "Terminal" then
+      filename = M.terminal_map[filename]
+    end
   end
 
   M.close()
@@ -154,8 +163,8 @@ function M.setKeymaps(win, buf)
   )
 end
 
-M.set_buffers = function(buf, current_buf)
-  for i, b in ipairs(M.get_bufs()) do
+M.set_buffers = function(buf)
+  for i, b in ipairs(get_bufs()) do
     local filename = b.name
     local changed = b.changed
 
@@ -168,10 +177,12 @@ M.set_buffers = function(buf, current_buf)
     end
 
     local extension = ""
-    extension = filename:match("^.+(%..+)$")
+    extension = filename:match "^.+(%..+)$"
 
     if filename:sub(1, 7) == "term://" then
-      filename = "Terminal" .. filename:gsub("^.*:", ': "')
+      M.terminal_count = M.terminal_count + 1
+      M.terminal_map["Terminal_" .. tostring(M.terminal_count) .. ":"] = filename
+      filename = "Terminal_" .. tostring(M.terminal_count) .. filename:gsub("^.*:", ': "')
       filename = filename:gsub('"', "")
       extension = ""
     end
@@ -184,7 +195,7 @@ M.set_buffers = function(buf, current_buf)
       if filename:split(" ", true)[1] == "Terminal:" then
         hl_group = hl_group .. "term"
       else
-        hl_group = hl_group .. filename:gsub('%W', '')
+        hl_group = hl_group .. filename:gsub("%W", "")
       end
     end
 
@@ -213,32 +224,37 @@ M.set_buffers = function(buf, current_buf)
     empty[#empty + 1] = string.rep(" ", max_width)
     vim.api.nvim_buf_set_lines(buf, i - 1, -1, false, empty)
     vim.api.nvim_buf_set_text(buf, i - 1, 0, i - 1, line:len(), { line })
-    vim.api.nvim_buf_set_text(buf, i - 1, max_width - tostring(linenr):len() + padding, i - 1, max_width,
-      { " " .. linenr })
+    vim.api.nvim_buf_set_text(
+      buf,
+      i - 1,
+      max_width - tostring(linenr):len() + padding,
+      i - 1,
+      max_width,
+      { " " .. linenr }
+    )
     vim.api.nvim_buf_add_highlight(buf, -1, hl_group, i - 1, 3, 4)
 
-
-    if b.bufnr == current_buf then
+    if b.bufnr == M.current_buf then
       vim.api.nvim_buf_add_highlight(buf, -1, "Visual", i - 1, 0, -1)
     end
   end
 end
 
-function M.refresh(buf, current_buf)
+function M.refresh(buf)
   vim.api.nvim_buf_set_option(buf, "modifiable", true)
-  M.set_buffers(buf, current_buf)
+  M.set_buffers(buf)
   vim.api.nvim_buf_set_option(buf, "modifiable", false)
 end
 
 M.open = function()
   local back_win = vim.api.nvim_get_current_win()
 
-  local current_buf = vim.api.nvim_win_get_buf(back_win)
+  M.current_buf = vim.api.nvim_win_get_buf(back_win)
 
   if not M.main_buf and not M.main_win then
     M.main_buf = vim.api.nvim_create_buf(false, true)
     M.main_win = vim.api.nvim_open_win(M.main_buf, 1, M.win_conf)
-    M.refresh(M.main_buf, current_buf)
+    M.refresh(M.main_buf)
     M.setKeymaps(back_win, M.main_buf)
   end
 end
